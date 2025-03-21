@@ -41,6 +41,7 @@ export interface ProcessingStatus {
   error?: string;
   created: Date;
   viewed?: boolean;
+  file: File; // Add the file property of type File
 }
 
 export interface APICredentials {
