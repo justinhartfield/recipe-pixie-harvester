@@ -36,6 +36,7 @@ const Header = ({
     bunnyStorageAccessKey: localStorage.getItem('bunnyStorageAccessKey') || '',
     bunnyStorageName: localStorage.getItem('bunnyStorageName') || '',
     bunnyStorageRegion: localStorage.getItem('bunnyStorageRegion') || 'de',
+    bunnyPullZoneId: localStorage.getItem('bunnyPullZoneId') || '',
     openaiApiKey: localStorage.getItem('openaiApiKey') || '',
     airtableApiKey: localStorage.getItem('airtableApiKey') || '',
     airtableBaseId: localStorage.getItem('airtableBaseId') || '',
@@ -71,7 +72,8 @@ const Header = ({
       initBunnyStorage(
         credentials.bunnyStorageAccessKey,
         credentials.bunnyStorageName,
-        credentials.bunnyStorageRegion
+        credentials.bunnyStorageRegion,
+        credentials.bunnyPullZoneId
       );
       
       initOpenAIVision(credentials.openaiApiKey);
@@ -164,6 +166,15 @@ const Header = ({
                         value={credentials.bunnyStorageRegion}
                         onChange={(e) => handleCredentialChange('bunnyStorageRegion', e.target.value)}
                         placeholder="Storage Region (e.g., de, ny, la)"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="bunnyPullZoneId">Pull Zone ID (optional)</Label>
+                      <Input
+                        id="bunnyPullZoneId"
+                        value={credentials.bunnyPullZoneId}
+                        onChange={(e) => handleCredentialChange('bunnyPullZoneId', e.target.value)}
+                        placeholder="Enter Bunny.net Pull Zone ID"
                       />
                     </div>
                   </div>

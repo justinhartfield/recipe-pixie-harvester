@@ -1,3 +1,4 @@
+
 import React from 'react';
 import Header from '@/components/Header';
 import ImageUploader from '@/components/ImageUploader';
@@ -29,7 +30,8 @@ const Index = () => {
         const bunnyStorage = initBunnyStorage(
           credentials.bunnyStorageAccessKey || '',
           credentials.bunnyStorageName || '',
-          credentials.bunnyStorageRegion || 'de'
+          credentials.bunnyStorageRegion || 'de',
+          credentials.bunnyPullZoneId || ''
         );
         
         initOpenAIVision(credentials.openaiApiKey || '');

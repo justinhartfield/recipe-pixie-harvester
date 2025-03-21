@@ -6,6 +6,7 @@ export class BunnyStorageService {
   private accessKey: string;
   private storageName: string;
   private region: string;
+  private pullZoneId: string;
   private baseUrl: string;
 
   /**
@@ -13,17 +14,21 @@ export class BunnyStorageService {
    * @param accessKey Bunny.net Storage Access Key
    * @param storageName Storage Zone Name
    * @param region Storage Region (default: 'de')
+   * @param pullZoneId Pull Zone ID (optional)
    */
-  constructor(accessKey: string, storageName: string, region: string = 'de') {
+  constructor(accessKey: string, storageName: string, region: string = 'de', pullZoneId: string = '') {
     this.accessKey = accessKey;
     this.storageName = storageName;
     this.region = region;
+    this.pullZoneId = pullZoneId;
     this.baseUrl = `https://${region}.storage.bunnycdn.com/${storageName}/`;
     
     console.log('BunnyStorageService initialized:', {
       hasAccessKey: !!accessKey,
+      accessKeyLength: accessKey ? accessKey.length : 0,
       storageName,
       region,
+      hasPullZoneId: !!pullZoneId,
       baseUrl: this.baseUrl
     });
   }
@@ -45,7 +50,8 @@ export class BunnyStorageService {
         accessKeyFirstChars: this.accessKey ? this.accessKey.substring(0, 5) + '...' : 'missing',
         storageName: this.storageName,
         fileType: file.type,
-        fileName: file.name
+        fileName: file.name,
+        hasPullZoneId: !!this.pullZoneId
       });
       
       // Use the rate limiter for the API request
@@ -78,7 +84,14 @@ export class BunnyStorageService {
           };
         }
 
-        const publicUrl = `https://${this.storageName}.b-cdn.net/${filePath}`;
+        // Construct public URL using pull zone if available
+        let publicUrl;
+        if (this.pullZoneId) {
+          publicUrl = `https://${this.pullZoneId}.b-cdn.net/${filePath}`;
+        } else {
+          publicUrl = `https://${this.storageName}.b-cdn.net/${filePath}`;
+        }
+        
         console.log('Bunny.net upload successful:', publicUrl);
         
         // Return the public URL
@@ -153,17 +166,19 @@ let bunnyStorageService: BunnyStorageService | null = null;
 export const initBunnyStorage = (
   accessKey: string,
   storageName: string,
-  region: string = 'de'
+  region: string = 'de',
+  pullZoneId: string = ''
 ): BunnyStorageService => {
   console.log('Initializing Bunny Storage with:', {
     storageName,
     region,
     hasAccessKey: !!accessKey,
-    accessKeyLength: accessKey ? accessKey.length : 0
+    accessKeyLength: accessKey ? accessKey.length : 0,
+    hasPullZoneId: !!pullZoneId
   });
   
   // Create a new instance with the provided credentials
-  bunnyStorageService = new BunnyStorageService(accessKey, storageName, region);
+  bunnyStorageService = new BunnyStorageService(accessKey, storageName, region, pullZoneId);
   return bunnyStorageService;
 };
 

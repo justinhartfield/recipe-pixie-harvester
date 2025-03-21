@@ -41,13 +41,14 @@ export interface ProcessingStatus {
   error?: string;
   created: Date;
   viewed?: boolean;
-  file: File; // Add the file property of type File
+  file: File;
 }
 
 export interface APICredentials {
   bunnyStorageAccessKey?: string;
   bunnyStorageName?: string;
   bunnyStorageRegion?: string;
+  bunnyPullZoneId?: string;
   openaiApiKey?: string;
   airtableApiKey?: string;
   airtableBaseId?: string;

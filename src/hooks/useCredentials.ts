@@ -8,6 +8,7 @@ export const useCredentials = () => {
     bunnyStorageAccessKey: '',
     bunnyStorageName: '',
     bunnyStorageRegion: 'de',
+    bunnyPullZoneId: '',
     openaiApiKey: '',
     airtableApiKey: '',
     airtableBaseId: '',
@@ -19,6 +20,7 @@ export const useCredentials = () => {
     const bunnyStorageAccessKey = localStorage.getItem('bunnyStorageAccessKey') || '';
     const bunnyStorageName = localStorage.getItem('bunnyStorageName') || '';
     const bunnyStorageRegion = localStorage.getItem('bunnyStorageRegion') || 'de';
+    const bunnyPullZoneId = localStorage.getItem('bunnyPullZoneId') || '';
     const openaiApiKey = localStorage.getItem('openaiApiKey') || '';
     const airtableApiKey = localStorage.getItem('airtableApiKey') || '';
     const airtableBaseId = localStorage.getItem('airtableBaseId') || '';
@@ -29,6 +31,7 @@ export const useCredentials = () => {
       hasBunnyKey: !!bunnyStorageAccessKey,
       bunnyStorageName,
       bunnyStorageRegion,
+      hasBunnyPullZoneId: !!bunnyPullZoneId,
       hasOpenAIKey: !!openaiApiKey,
       hasAirtableKey: !!airtableApiKey,
       hasAirtableBaseId: !!airtableBaseId,
@@ -51,6 +54,7 @@ export const useCredentials = () => {
       bunnyStorageAccessKey,
       bunnyStorageName,
       bunnyStorageRegion,
+      bunnyPullZoneId,
       openaiApiKey,
       airtableApiKey,
       airtableBaseId,
@@ -64,6 +68,7 @@ export const useCredentials = () => {
       hasBunnyKey: !!newCredentials.bunnyStorageAccessKey,
       bunnyStorageName: newCredentials.bunnyStorageName,
       bunnyStorageRegion: newCredentials.bunnyStorageRegion,
+      hasBunnyPullZoneId: !!newCredentials.bunnyPullZoneId,
       hasOpenAIKey: !!newCredentials.openaiApiKey,
       hasAirtableKey: !!newCredentials.airtableApiKey,
       hasAirtableBaseId: !!newCredentials.airtableBaseId,
