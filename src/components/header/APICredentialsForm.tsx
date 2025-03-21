@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useToast } from '@/components/ui/use-toast';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,6 +8,7 @@ import { initOpenAIVision } from '@/services/openaiService';
 import { initAirtable, getAirtable } from '@/services/airtableService';
 import { APICredentials } from '@/utils/types';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { Spinner } from '@/components/ui/spinner';
 
 interface APICredentialsFormProps {
   credentials: APICredentials;
@@ -25,15 +26,42 @@ const APICredentialsForm = ({
   const { toast } = useToast();
   const [isValidating, setIsValidating] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
+  const [validationLogs, setValidationLogs] = useState<string[]>([]);
+  const [showLogs, setShowLogs] = useState(false);
+  const originalConsoleLog = useRef(console.log);
 
   // Validate Base ID format (should be appXXXXXXXXXXXXXX)
   const isValidBaseId = (baseId: string) => {
     return /^app[a-zA-Z0-9]{14,17}$/.test(baseId);
   };
 
+  const captureConsoleLogs = () => {
+    const logs: string[] = [];
+    console.log = (...args) => {
+      originalConsoleLog.current(...args);
+      logs.push(args.map(arg => {
+        if (typeof arg === 'object') {
+          try {
+            return JSON.stringify(arg);
+          } catch {
+            return String(arg);
+          }
+        }
+        return String(arg);
+      }).join(' '));
+    };
+    return logs;
+  };
+
+  const restoreConsoleLog = () => {
+    console.log = originalConsoleLog.current;
+  };
+
   const handleSave = async () => {
     // Reset validation state
     setValidationError(null);
+    setValidationLogs([]);
+    setShowLogs(false);
 
     // Validate required fields
     if (!credentials.openaiApiKey || !credentials.airtableApiKey || 
@@ -63,6 +91,9 @@ const APICredentialsForm = ({
     try {
       setIsValidating(true);
       
+      // Capture console logs during validation
+      const logs = captureConsoleLogs();
+      
       // Initialize OpenAI (this doesn't make an API call)
       initOpenAIVision(credentials.openaiApiKey);
       
@@ -75,8 +106,16 @@ const APICredentialsForm = ({
       
       // Test the Airtable connection
       const airtableValidation = await airtableService.validateConfig();
+      
+      // Restore console.log
+      restoreConsoleLog();
+      
+      // Set validation logs
+      setValidationLogs(logs);
+      
       if (!airtableValidation.valid) {
         setValidationError(airtableValidation.error || "Failed to validate Airtable configuration");
+        setShowLogs(true);
         toast({
           title: "Airtable configuration error",
           description: airtableValidation.error || "Failed to validate Airtable configuration",
@@ -105,13 +144,32 @@ const APICredentialsForm = ({
       setIsValidating(false);
       const errorMessage = error instanceof Error ? error.message : "Failed to initialize services";
       setValidationError(errorMessage);
+      setShowLogs(true);
       toast({
         title: "Configuration error",
         description: errorMessage,
         variant: "destructive",
       });
+      
+      // Restore console.log in case of error
+      restoreConsoleLog();
     }
   };
+
+  const TokenPermissionInfo = () => (
+    <Alert className="bg-yellow-50 border-yellow-200 mt-4">
+      <AlertTitle>Airtable Token Permissions</AlertTitle>
+      <AlertDescription>
+        <p>Make sure your Airtable Personal Access Token has these permissions:</p>
+        <ul className="list-disc list-inside mt-2 space-y-1">
+          <li><strong>data.records:read</strong> - To fetch records</li>
+          <li><strong>data.records:write</strong> - To create new records</li>
+          <li><strong>schema.bases:read</strong> - To validate base and table access</li>
+        </ul>
+        <p className="mt-2 text-sm">Tokens can be created at <a href="https://airtable.com/create/tokens" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">https://airtable.com/create/tokens</a></p>
+      </AlertDescription>
+    </Alert>
+  );
 
   return (
     <div className="grid gap-6 py-4">
@@ -119,7 +177,25 @@ const APICredentialsForm = ({
         <Alert variant="destructive">
           <AlertTitle>Configuration Error</AlertTitle>
           <AlertDescription>{validationError}</AlertDescription>
+          {showLogs && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="mt-2"
+              onClick={() => setShowLogs(!showLogs)}
+            >
+              {showLogs ? "Hide Validation Logs" : "Show Validation Logs"}
+            </Button>
+          )}
         </Alert>
+      )}
+      
+      {showLogs && validationLogs.length > 0 && (
+        <div className="bg-slate-100 p-3 rounded text-xs font-mono overflow-auto max-h-40">
+          {validationLogs.map((log, i) => (
+            <div key={i} className="whitespace-pre-wrap">{log}</div>
+          ))}
+        </div>
       )}
       
       <Alert className="bg-blue-50 border-blue-200">
@@ -146,6 +222,8 @@ const APICredentialsForm = ({
           </ul>
         </AlertDescription>
       </Alert>
+      
+      <TokenPermissionInfo />
       
       <div className="grid gap-2">
         <h3 className="text-lg font-medium">OpenAI</h3>
@@ -215,7 +293,12 @@ const APICredentialsForm = ({
           Cancel
         </Button>
         <Button onClick={handleSave} disabled={isValidating}>
-          {isValidating ? 'Validating...' : 'Save Changes'}
+          {isValidating ? (
+            <>
+              <span className="mr-2">Validating...</span>
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+            </>
+          ) : 'Save Changes'}
         </Button>
       </div>
     </div>

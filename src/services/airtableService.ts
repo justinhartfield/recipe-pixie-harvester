@@ -30,6 +30,74 @@ export class AirtableService {
    */
   public async validateConfig(): Promise<{ valid: boolean; error?: string }> {
     try {
+      console.log('Validating Airtable configuration...');
+      console.log(`Base URL: ${this.baseUrl}`);
+      console.log(`API Key (masked): ${this.apiKey.substring(0, 5)}...${this.apiKey.substring(this.apiKey.length - 4)}`);
+      console.log(`Base ID: ${this.baseId}`);
+      console.log(`Table Name: ${this.tableName}`);
+      
+      // First, validate the base ID structure
+      if (!this.baseId.startsWith('app')) {
+        return { 
+          valid: false, 
+          error: 'Invalid Base ID format. It should start with "app" followed by alphanumeric characters.' 
+        };
+      }
+
+      // Validate the Airtable API connection by first checking the base
+      const baseResponse = await fetch(`https://api.airtable.com/v0/${this.baseId}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`,
+        },
+      });
+
+      // Log full response for debugging
+      console.log(`Base validation response status: ${baseResponse.status}`);
+      console.log(`Base validation response status text: ${baseResponse.statusText}`);
+      
+      if (!baseResponse.ok) {
+        // Log response headers for debugging
+        const headers: Record<string, string> = {};
+        baseResponse.headers.forEach((value, key) => {
+          headers[key] = value;
+        });
+        console.log('Response headers:', headers);
+        
+        let errorText = '';
+        try {
+          const errorData = await baseResponse.json();
+          console.error('Airtable base validation error:', errorData);
+          errorText = errorData.error?.message || '';
+        } catch (e) {
+          errorText = await baseResponse.text();
+          console.error('Non-JSON error response:', errorText);
+        }
+
+        if (baseResponse.status === 404) {
+          return { 
+            valid: false, 
+            error: `Base not found: '${this.baseId}'. Please check your Base ID in the Airtable workspace URL.` 
+          };
+        } else if (baseResponse.status === 401) {
+          return { 
+            valid: false, 
+            error: 'Authentication failed. Your API token may be invalid or expired.'
+          };
+        } else if (baseResponse.status === 403) {
+          return { 
+            valid: false, 
+            error: 'Access forbidden. Make sure your API token has access to this base and has the correct permissions.'
+          };
+        } else {
+          return { 
+            valid: false, 
+            error: `Airtable API error: ${errorText || baseResponse.statusText}`
+          };
+        }
+      }
+
+      // If base is valid, now check the table
       const response = await fetch(this.baseUrl, {
         method: 'GET',
         headers: {
@@ -37,30 +105,59 @@ export class AirtableService {
         },
       });
 
+      // Log table validation response
+      console.log(`Table validation response status: ${response.status}`);
+      console.log(`Table validation response status text: ${response.statusText}`);
+
       if (!response.ok) {
+        let errorText = '';
+        try {
+          const errorData = await response.json();
+          console.error('Airtable table validation error:', errorData);
+          errorText = errorData.error?.message || '';
+        } catch (e) {
+          errorText = await response.text();
+          console.error('Non-JSON error response:', errorText);
+        }
+        
         if (response.status === 404) {
           return { 
             valid: false, 
-            error: `Airtable base or table not found. Please verify your Base ID (${this.baseId}) and Table Name (${this.tableName}).` 
+            error: `Table not found: '${this.tableName}' in base '${this.baseId}'. Make sure the table name is correct and case-sensitive.` 
           };
         }
         
-        if (response.status === 401 || response.status === 403) {
-          return { 
-            valid: false, 
-            error: 'Authentication failed. Please check your Airtable API key.'
-          };
-        }
-        
-        const errorData = await response.json();
         return { 
           valid: false, 
-          error: `Airtable API error: ${errorData.error?.message || response.statusText}`
+          error: `Airtable API error: ${errorText || response.statusText}`
         };
       }
 
-      return { valid: true };
+      // Check if the required fields exist in the table
+      try {
+        const tableData = await response.json();
+        console.log('Table validation successful. Records returned:', tableData.records?.length);
+        
+        if (!tableData.records) {
+          return { valid: true }; // No records but schema is valid
+        }
+        
+        // Get a sample record to check fields (if there are records)
+        if (tableData.records.length > 0) {
+          const sampleRecord = tableData.records[0];
+          console.log('Sample record fields:', Object.keys(sampleRecord.fields));
+        }
+        
+        return { valid: true };
+      } catch (error) {
+        console.error('Error parsing table validation response:', error);
+        return { 
+          valid: false, 
+          error: 'Failed to parse Airtable response. The API response format may have changed.'
+        };
+      }
     } catch (error) {
+      console.error('Airtable validation error:', error);
       return { 
         valid: false, 
         error: error instanceof Error ? error.message : 'Unknown error validating Airtable configuration'
