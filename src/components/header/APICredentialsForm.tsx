@@ -141,7 +141,8 @@ const APICredentialsForm = ({
           <ul className="list-disc list-inside mt-1 space-y-1 text-sm text-red-600">
             <li>Using a workspace ID instead of a Base ID</li>
             <li>Missing or incorrect table field names</li>
-            <li>403 Forbidden - API key doesn't have access to the base</li>
+            <li>403 Forbidden - API token doesn't have access to the base</li>
+            <li>401 Unauthorized - Invalid API token</li>
           </ul>
         </AlertDescription>
       </Alert>
@@ -164,16 +165,16 @@ const APICredentialsForm = ({
         <h3 className="text-lg font-medium">Airtable</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="airtableApiKey">API Key</Label>
+            <Label htmlFor="airtableApiKey">API Token</Label>
             <Input
               id="airtableApiKey"
               value={credentials.airtableApiKey}
               onChange={(e) => onCredentialChange('airtableApiKey', e.target.value)}
-              placeholder="Enter Airtable API Key"
+              placeholder="Enter Airtable Personal Access Token"
               type="password"
             />
             <p className="text-xs text-muted-foreground">
-              Find your API key in your <a href="https://airtable.com/account" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Airtable account settings</a>
+              Find your token in your <a href="https://airtable.com/create/tokens" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Airtable account settings</a>
             </p>
           </div>
           <div className="space-y-2">
