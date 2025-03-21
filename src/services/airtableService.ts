@@ -1,3 +1,4 @@
+
 import { Recipe, ImageUploadResult } from '@/utils/types';
 import { apiRateLimiter } from '@/utils/rateLimit';
 
@@ -21,7 +22,7 @@ export class AirtableService {
   }
 
   /**
-   * Upload image to Airtable by converting it to base64
+   * Upload image to Airtable as an attachment
    * @param file The image file to upload
    * @returns Upload result with URL if successful
    */
@@ -38,7 +39,7 @@ export class AirtableService {
       
       console.log(`Converted ${file.name} to base64 (length: ${base64.length})`);
       
-      // Create a record with the image
+      // Create a record with the image attachment
       const record = {
         fields: {
           "Name": file.name,
@@ -49,6 +50,7 @@ export class AirtableService {
               type: file.type
             }
           ],
+          "Type": "Image",
           "Upload Date": new Date().toISOString()
         }
       };
@@ -75,9 +77,13 @@ export class AirtableService {
         }
 
         const data = await response.json();
+        console.log('Airtable upload response:', data);
+        
+        // Get the URL of the uploaded image from the attachment field
         const attachmentUrl = data.fields?.Image?.[0]?.url || data.fields?.Image?.[0]?.thumbnails?.large?.url;
         
         if (!attachmentUrl) {
+          console.error('Image uploaded but URL not returned:', data);
           return {
             success: false,
             error: 'Image uploaded but URL not returned'

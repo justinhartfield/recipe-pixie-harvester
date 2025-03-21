@@ -72,9 +72,19 @@ const APICredentialsForm = ({
   return (
     <div className="grid gap-6 py-4">
       <Alert className="bg-blue-50 border-blue-200">
-        <AlertTitle>Image Upload Information</AlertTitle>
+        <AlertTitle>Airtable Configuration Requirements</AlertTitle>
         <AlertDescription>
-          Images will be uploaded directly to Airtable as attachments. Make sure your Airtable base has an "Image" field of type "Attachment".
+          <p>Your Airtable base must have the following fields:</p>
+          <ul className="list-disc list-inside mt-2 space-y-1">
+            <li><strong>Name</strong> (Single line text)</li>
+            <li><strong>Image</strong> (Attachment type)</li> 
+            <li><strong>Type</strong> (Single select)</li>
+            <li><strong>Upload Date</strong> (Date)</li>
+            <li><strong>Recipe Name</strong> (Single line text)</li>
+            <li><strong>Recipe Category</strong> (Single select)</li>
+            <li><strong>Ingredients</strong> (Long text)</li>
+            <li><strong>Preparation Steps</strong> (Long text)</li>
+          </ul>
         </AlertDescription>
       </Alert>
       
@@ -111,7 +121,7 @@ const APICredentialsForm = ({
               id="airtableBaseId"
               value={credentials.airtableBaseId}
               onChange={(e) => onCredentialChange('airtableBaseId', e.target.value)}
-              placeholder="Enter Airtable Base ID"
+              placeholder="Enter Airtable Base ID (appXXXXXXXX)"
             />
           </div>
           <div className="space-y-2">
