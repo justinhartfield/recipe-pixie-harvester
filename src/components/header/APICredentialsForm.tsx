@@ -4,10 +4,10 @@ import { useToast } from '@/components/ui/use-toast';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { initBunnyStorage } from '@/services/bunnyService';
 import { initOpenAIVision } from '@/services/openaiService';
 import { initAirtable } from '@/services/airtableService';
 import { APICredentials } from '@/utils/types';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
 interface APICredentialsFormProps {
   credentials: APICredentials;
@@ -26,8 +26,7 @@ const APICredentialsForm = ({
 
   const handleSave = () => {
     // Validate required fields
-    if (!credentials.bunnyStorageAccessKey || !credentials.bunnyStorageName || 
-        !credentials.openaiApiKey || !credentials.airtableApiKey || 
+    if (!credentials.openaiApiKey || !credentials.airtableApiKey || 
         !credentials.airtableBaseId || !credentials.airtableTableName) {
       toast({
         title: "Missing credentials",
@@ -46,13 +45,6 @@ const APICredentialsForm = ({
 
     // Initialize services
     try {
-      initBunnyStorage(
-        credentials.bunnyStorageAccessKey,
-        credentials.bunnyStorageName,
-        credentials.bunnyStorageRegion,
-        credentials.bunnyPullZoneId
-      );
-      
       initOpenAIVision(credentials.openaiApiKey);
       
       initAirtable(
@@ -79,47 +71,12 @@ const APICredentialsForm = ({
 
   return (
     <div className="grid gap-6 py-4">
-      <div className="grid gap-2">
-        <h3 className="text-lg font-medium">Bunny.net Storage</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="bunnyStorageAccessKey">Access Key</Label>
-            <Input
-              id="bunnyStorageAccessKey"
-              value={credentials.bunnyStorageAccessKey}
-              onChange={(e) => onCredentialChange('bunnyStorageAccessKey', e.target.value)}
-              placeholder="Enter Bunny.net Storage Access Key"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="bunnyStorageName">Storage Name</Label>
-            <Input
-              id="bunnyStorageName"
-              value={credentials.bunnyStorageName}
-              onChange={(e) => onCredentialChange('bunnyStorageName', e.target.value)}
-              placeholder="Enter Bunny.net Storage Zone Name"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="bunnyStorageRegion">Region</Label>
-            <Input
-              id="bunnyStorageRegion"
-              value={credentials.bunnyStorageRegion}
-              onChange={(e) => onCredentialChange('bunnyStorageRegion', e.target.value)}
-              placeholder="Storage Region (e.g., de, ny, la)"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="bunnyPullZoneId">Pull Zone ID (optional)</Label>
-            <Input
-              id="bunnyPullZoneId"
-              value={credentials.bunnyPullZoneId}
-              onChange={(e) => onCredentialChange('bunnyPullZoneId', e.target.value)}
-              placeholder="Enter Bunny.net Pull Zone ID"
-            />
-          </div>
-        </div>
-      </div>
+      <Alert className="bg-blue-50 border-blue-200">
+        <AlertTitle>Image Upload Information</AlertTitle>
+        <AlertDescription>
+          Images will be uploaded directly to Airtable as attachments. Make sure your Airtable base has an "Image" field of type "Attachment".
+        </AlertDescription>
+      </Alert>
       
       <div className="grid gap-2">
         <h3 className="text-lg font-medium">OpenAI</h3>

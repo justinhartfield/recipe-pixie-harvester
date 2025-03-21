@@ -45,10 +45,6 @@ export interface ProcessingStatus {
 }
 
 export interface APICredentials {
-  bunnyStorageAccessKey?: string;
-  bunnyStorageName?: string;
-  bunnyStorageRegion?: string;
-  bunnyPullZoneId?: string;
   openaiApiKey?: string;
   airtableApiKey?: string;
   airtableBaseId?: string;

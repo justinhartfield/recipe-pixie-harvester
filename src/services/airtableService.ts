@@ -1,5 +1,4 @@
-
-import { Recipe } from '@/utils/types';
+import { Recipe, ImageUploadResult } from '@/utils/types';
 import { apiRateLimiter } from '@/utils/rateLimit';
 
 export class AirtableService {
@@ -19,6 +18,108 @@ export class AirtableService {
     this.baseId = baseId;
     this.tableName = tableName;
     this.baseUrl = `https://api.airtable.com/v0/${baseId}/${tableName}`;
+  }
+
+  /**
+   * Upload image to Airtable by converting it to base64
+   * @param file The image file to upload
+   * @returns Upload result with URL if successful
+   */
+  public async uploadImage(file: File): Promise<ImageUploadResult> {
+    try {
+      // Convert file to base64
+      const base64 = await this.fileToBase64(file);
+      if (!base64) {
+        return {
+          success: false,
+          error: 'Failed to convert image to base64'
+        };
+      }
+      
+      console.log(`Converted ${file.name} to base64 (length: ${base64.length})`);
+      
+      // Create a record with the image
+      const record = {
+        fields: {
+          "Name": file.name,
+          "Image": [
+            {
+              filename: file.name,
+              content: base64,
+              type: file.type
+            }
+          ],
+          "Upload Date": new Date().toISOString()
+        }
+      };
+
+      return await apiRateLimiter.add(async () => {
+        console.log(`Uploading image to Airtable: ${file.name}`);
+        
+        const response = await fetch(this.baseUrl, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${this.apiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(record),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error('Airtable image upload error:', errorData);
+          return {
+            success: false,
+            error: `Upload failed: ${errorData.error?.message || response.statusText}`
+          };
+        }
+
+        const data = await response.json();
+        const attachmentUrl = data.fields?.Image?.[0]?.url || data.fields?.Image?.[0]?.thumbnails?.large?.url;
+        
+        if (!attachmentUrl) {
+          return {
+            success: false,
+            error: 'Image uploaded but URL not returned'
+          };
+        }
+
+        console.log('Airtable image upload successful:', attachmentUrl);
+        
+        return {
+          success: true,
+          url: attachmentUrl
+        };
+      });
+    } catch (error) {
+      console.error('Airtable image upload error:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown upload error'
+      };
+    }
+  }
+
+  /**
+   * Convert file to base64
+   * @param file The file to convert
+   * @returns Base64 string
+   */
+  private fileToBase64(file: File): Promise<string | null> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => {
+        const result = reader.result as string;
+        // Remove the data URL prefix (e.g., "data:image/jpeg;base64,")
+        const base64 = result.split(',')[1];
+        resolve(base64);
+      };
+      reader.onerror = (error) => {
+        console.error('Error converting file to base64:', error);
+        reject(null);
+      };
+    });
   }
 
   /**
@@ -193,16 +294,44 @@ export class AirtableService {
         const record = await response.json();
         const fields = record.fields;
         
-        // Parse ingredients and steps as in getRecipes
-        // ... (parsing code would be the same as in getRecipes)
+        // Parse ingredients
+        const ingredientsText = fields.Ingredients || '';
+        const ingredients = ingredientsText.split('\n').map((ing: string) => {
+          const match = ing.match(/(.*?)\s*\((.*?)\)/);
+          if (match) {
+            const [_, name, quantityMeasurement] = match;
+            const parts = quantityMeasurement.split(' ');
+            if (parts.length > 1) {
+              return {
+                name: name.trim(),
+                quantity: parts[0],
+                measurement: parts.slice(1).join(' ')
+              };
+            }
+            return { name: name.trim(), quantity: quantityMeasurement };
+          }
+          return { name: ing.trim() };
+        });
+        
+        // Parse preparation steps
+        const stepsText = fields['Preparation Steps'] || '';
+        const steps = stepsText.split('\n')
+          .map((step: string) => step.replace(/^\d+\.\s*/, '').trim())
+          .filter((step: string) => step.length > 0);
+        
+        // Parse dietary flags
+        const dietaryFlags = (fields['Dietary Flags'] || '')
+          .split(',')
+          .map((flag: string) => flag.trim())
+          .filter((flag: string) => flag.length > 0);
         
         return {
           id: record.id,
           recipeName: fields['Recipe Name'] || 'Unnamed Recipe',
           recipeCategory: fields['Recipe Category'] || 'Other',
-          dietaryFlags: (fields['Dietary Flags'] || '').split(',').map((f: string) => f.trim()),
-          ingredients: [], // Parse as in getRecipes
-          preparationSteps: [], // Parse as in getRecipes
+          dietaryFlags,
+          ingredients,
+          preparationSteps: steps,
           preparationTime: parseInt(fields['Preparation Time'] || '0', 10),
           cookTime: parseInt(fields['Cook Time'] || '0', 10),
           totalTime: parseInt(fields['Total Time'] || '0', 10),

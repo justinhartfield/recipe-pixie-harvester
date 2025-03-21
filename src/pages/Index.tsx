@@ -1,3 +1,4 @@
+
 import React from 'react';
 import Header from '@/components/header/Header';
 import ImageUploader from '@/components/ImageUploader';
@@ -5,7 +6,6 @@ import ProcessingQueue from '@/components/ProcessingQueue';
 import WelcomeMessage from '@/components/WelcomeMessage';
 import { useCredentials } from '@/hooks/useCredentials';
 import { useImageProcessing } from '@/hooks/useImageProcessing';
-import { initBunnyStorage } from '@/services/bunnyService';
 import { initOpenAIVision } from '@/services/openaiService';
 import { initAirtable } from '@/services/airtableService';
 
@@ -24,13 +24,6 @@ const Index = () => {
     if (isCredentialsSet && credentials) {
       try {
         console.log('Initializing services with credentials...');
-        
-        const bunnyStorage = initBunnyStorage(
-          credentials.bunnyStorageAccessKey || '',
-          credentials.bunnyStorageName || '',
-          credentials.bunnyStorageRegion || 'de',
-          credentials.bunnyPullZoneId || ''
-        );
         
         initOpenAIVision(credentials.openaiApiKey || '');
         

@@ -3,7 +3,6 @@ import { useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { ProcessingStatus, Recipe } from '@/utils/types';
 import { useToast } from '@/components/ui/use-toast';
-import { getBunnyStorage } from '@/services/bunnyService';
 import { getOpenAIVision } from '@/services/openaiService';
 import { getAirtable } from '@/services/airtableService';
 import { apiRateLimiter } from '@/utils/rateLimit';
@@ -54,11 +53,10 @@ export const useImageProcessing = () => {
   };
 
   const processFile = async (item: ProcessingStatus) => {
-    const bunnyStorage = getBunnyStorage();
     const openAIVision = getOpenAIVision();
     const airtable = getAirtable();
 
-    if (!bunnyStorage || !openAIVision || !airtable) {
+    if (!openAIVision || !airtable) {
       updateQueueItem(item.id, {
         status: 'error',
         progress: 100,
@@ -68,9 +66,9 @@ export const useImageProcessing = () => {
     }
 
     try {
-      // Step 1: Upload to Bunny.net
+      // Step 1: Upload to Airtable
       updateQueueItem(item.id, { status: 'uploading', progress: 10 });
-      const uploadResult = await bunnyStorage.uploadFile(item.file);
+      const uploadResult = await airtable.uploadImage(item.file);
       
       if (!uploadResult.success || !uploadResult.url) {
         throw new Error(uploadResult.error || 'Failed to upload image');

@@ -61,7 +61,7 @@ const SettingsDialog = ({
         <DialogHeader>
           <DialogTitle>API Configuration</DialogTitle>
           <DialogDescription>
-            Configure API credentials for Bunny.net, OpenAI, and Airtable.
+            Configure API credentials for OpenAI and Airtable.
           </DialogDescription>
         </DialogHeader>
         

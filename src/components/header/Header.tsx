@@ -15,10 +15,6 @@ const Header = ({
   onRateLimitChange,
 }: HeaderProps) => {
   const credentials: APICredentials = {
-    bunnyStorageAccessKey: localStorage.getItem('bunnyStorageAccessKey') || '',
-    bunnyStorageName: localStorage.getItem('bunnyStorageName') || '',
-    bunnyStorageRegion: localStorage.getItem('bunnyStorageRegion') || 'de',
-    bunnyPullZoneId: localStorage.getItem('bunnyPullZoneId') || '',
     openaiApiKey: localStorage.getItem('openaiApiKey') || '',
     airtableApiKey: localStorage.getItem('airtableApiKey') || '',
     airtableBaseId: localStorage.getItem('airtableBaseId') || '',
