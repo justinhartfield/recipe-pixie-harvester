@@ -19,6 +19,53 @@ export class AirtableService {
     this.baseId = baseId;
     this.tableName = tableName;
     this.baseUrl = `https://api.airtable.com/v0/${baseId}/${tableName}`;
+    
+    // Log for debugging
+    console.log(`Initialized Airtable service with base URL: ${this.baseUrl}`);
+  }
+
+  /**
+   * Validate Airtable configuration by making a test request
+   * @returns True if configuration is valid
+   */
+  public async validateConfig(): Promise<{ valid: boolean; error?: string }> {
+    try {
+      const response = await fetch(this.baseUrl, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`,
+        },
+      });
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          return { 
+            valid: false, 
+            error: `Airtable base or table not found. Please verify your Base ID (${this.baseId}) and Table Name (${this.tableName}).` 
+          };
+        }
+        
+        if (response.status === 401 || response.status === 403) {
+          return { 
+            valid: false, 
+            error: 'Authentication failed. Please check your Airtable API key.'
+          };
+        }
+        
+        const errorData = await response.json();
+        return { 
+          valid: false, 
+          error: `Airtable API error: ${errorData.error?.message || response.statusText}`
+        };
+      }
+
+      return { valid: true };
+    } catch (error) {
+      return { 
+        valid: false, 
+        error: error instanceof Error ? error.message : 'Unknown error validating Airtable configuration'
+      };
+    }
   }
 
   /**
@@ -28,6 +75,15 @@ export class AirtableService {
    */
   public async uploadImage(file: File): Promise<ImageUploadResult> {
     try {
+      // First validate the configuration
+      const configValidation = await this.validateConfig();
+      if (!configValidation.valid) {
+        return {
+          success: false,
+          error: configValidation.error || 'Invalid Airtable configuration'
+        };
+      }
+      
       // Convert file to base64
       const base64 = await this.fileToBase64(file);
       if (!base64) {
@@ -38,6 +94,7 @@ export class AirtableService {
       }
       
       console.log(`Converted ${file.name} to base64 (length: ${base64.length})`);
+      console.log(`Uploading to Airtable URL: ${this.baseUrl}`);
       
       // Create a record with the image attachment
       const record = {
@@ -68,11 +125,27 @@ export class AirtableService {
         });
 
         if (!response.ok) {
-          const errorData = await response.json();
-          console.error('Airtable image upload error:', errorData);
+          let errorMessage = response.statusText;
+          try {
+            const errorData = await response.json();
+            errorMessage = errorData.error?.message || response.statusText;
+            console.error('Airtable API error details:', errorData);
+          } catch (e) {
+            // Response might not be JSON
+            console.error('Non-JSON error response:', await response.text());
+          }
+          
+          if (response.status === 404) {
+            errorMessage = `Table not found: '${this.tableName}' in base '${this.baseId}'. Please check your Airtable configuration.`;
+          } else if (response.status === 401 || response.status === 403) {
+            errorMessage = 'Authentication failed. Please check your Airtable API key.';
+          }
+          
+          console.error(`Airtable upload failed (${response.status}): ${errorMessage}`);
+          
           return {
             success: false,
-            error: `Upload failed: ${errorData.error?.message || response.statusText}`
+            error: `Upload failed: ${errorMessage}`
           };
         }
 

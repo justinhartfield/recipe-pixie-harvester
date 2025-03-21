@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { initOpenAIVision } from '@/services/openaiService';
-import { initAirtable } from '@/services/airtableService';
+import { initAirtable, getAirtable } from '@/services/airtableService';
 import { APICredentials } from '@/utils/types';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
@@ -23,8 +23,9 @@ const APICredentialsForm = ({
   onCancel
 }: APICredentialsFormProps) => {
   const { toast } = useToast();
+  const [isValidating, setIsValidating] = useState(false);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     // Validate required fields
     if (!credentials.openaiApiKey || !credentials.airtableApiKey || 
         !credentials.airtableBaseId || !credentials.airtableTableName) {
@@ -36,31 +37,49 @@ const APICredentialsForm = ({
       return;
     }
 
-    // Save to localStorage
-    Object.entries(credentials).forEach(([key, value]) => {
-      if (value) {
-        localStorage.setItem(key, value);
-      }
-    });
-
-    // Initialize services
+    // Initialize services to validate configuration
     try {
+      setIsValidating(true);
+      
+      // Initialize OpenAI (this doesn't make an API call)
       initOpenAIVision(credentials.openaiApiKey);
       
-      initAirtable(
+      // Initialize Airtable and validate connection
+      const airtableService = initAirtable(
         credentials.airtableApiKey,
         credentials.airtableBaseId,
         credentials.airtableTableName
       );
+      
+      // Test the Airtable connection
+      const airtableValidation = await airtableService.validateConfig();
+      if (!airtableValidation.valid) {
+        toast({
+          title: "Airtable configuration error",
+          description: airtableValidation.error || "Failed to validate Airtable configuration",
+          variant: "destructive",
+        });
+        setIsValidating(false);
+        return;
+      }
+
+      // Save to localStorage if everything is valid
+      Object.entries(credentials).forEach(([key, value]) => {
+        if (value) {
+          localStorage.setItem(key, value);
+        }
+      });
 
       toast({
         title: "Settings saved",
-        description: "API credentials have been saved and services initialized",
+        description: "API credentials have been saved and verified successfully",
       });
 
+      setIsValidating(false);
       onSave();
     } catch (error) {
       console.error('Error initializing services:', error);
+      setIsValidating(false);
       toast({
         title: "Configuration error",
         description: error instanceof Error ? error.message : "Failed to initialize services",
@@ -85,6 +104,7 @@ const APICredentialsForm = ({
             <li><strong>Ingredients</strong> (Long text)</li>
             <li><strong>Preparation Steps</strong> (Long text)</li>
           </ul>
+          <p className="mt-2 text-sm font-medium">Make sure your Base ID is in the format <code>appXXXXXXXXXXXXXX</code></p>
         </AlertDescription>
       </Alert>
       
@@ -114,6 +134,9 @@ const APICredentialsForm = ({
               placeholder="Enter Airtable API Key"
               type="password"
             />
+            <p className="text-xs text-muted-foreground">
+              Find your API key in your <a href="https://airtable.com/account" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Airtable account settings</a>
+            </p>
           </div>
           <div className="space-y-2">
             <Label htmlFor="airtableBaseId">Base ID</Label>
@@ -123,6 +146,9 @@ const APICredentialsForm = ({
               onChange={(e) => onCredentialChange('airtableBaseId', e.target.value)}
               placeholder="Enter Airtable Base ID (appXXXXXXXX)"
             />
+            <p className="text-xs text-muted-foreground">
+              Find in your base URL: airtable.com/{credentials.airtableBaseId ? credentials.airtableBaseId : 'appXXXXXXXX'}/...
+            </p>
           </div>
           <div className="space-y-2">
             <Label htmlFor="airtableTableName">Table Name</Label>
@@ -132,16 +158,19 @@ const APICredentialsForm = ({
               onChange={(e) => onCredentialChange('airtableTableName', e.target.value)}
               placeholder="Enter Airtable Table Name"
             />
+            <p className="text-xs text-muted-foreground">
+              The exact name of your table (case-sensitive)
+            </p>
           </div>
         </div>
       </div>
 
       <div className="flex justify-end gap-2 mt-4">
-        <Button variant="outline" onClick={onCancel}>
+        <Button variant="outline" onClick={onCancel} disabled={isValidating}>
           Cancel
         </Button>
-        <Button onClick={handleSave}>
-          Save Changes
+        <Button onClick={handleSave} disabled={isValidating}>
+          {isValidating ? 'Validating...' : 'Save Changes'}
         </Button>
       </div>
     </div>
