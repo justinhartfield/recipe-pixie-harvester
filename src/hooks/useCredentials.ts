@@ -5,16 +5,16 @@ import { APICredentials } from '@/utils/types';
 export const useCredentials = () => {
   const [isCredentialsSet, setIsCredentialsSet] = useState(false);
   const [credentials, setCredentials] = useState<APICredentials>({
-    openaiApiKey: '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',
-    airtableApiKey: 'patAgalgn8IqCFf3m.3f0943fc1bad5e63e785e4f081811e437d6a705b1f226f385344922fb418d986',
+    openaiApiKey: '',
+    airtableApiKey: '',
     airtableBaseId: '',
     airtableTableName: '',
   });
 
   // Check for credentials on load
   useEffect(() => {
-    const openaiApiKey = localStorage.getItem('openaiApiKey') || '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';
-    const airtableApiKey = localStorage.getItem('airtableApiKey') || 'patAgalgn8IqCFf3m.3f0943fc1bad5e63e785e4f081811e437d6a705b1f226f385344922fb418d986';
+    const openaiApiKey = localStorage.getItem('openaiApiKey') || '';
+    const airtableApiKey = localStorage.getItem('airtableApiKey') || '';
     const airtableBaseId = localStorage.getItem('airtableBaseId') || '';
     const airtableTableName = localStorage.getItem('airtableTableName') || '';
 

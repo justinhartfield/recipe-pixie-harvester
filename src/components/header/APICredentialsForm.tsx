@@ -24,14 +24,36 @@ const APICredentialsForm = ({
 }: APICredentialsFormProps) => {
   const { toast } = useToast();
   const [isValidating, setIsValidating] = useState(false);
+  const [validationError, setValidationError] = useState<string | null>(null);
+
+  // Validate Base ID format (should be appXXXXXXXXXXXXXX)
+  const isValidBaseId = (baseId: string) => {
+    return /^app[a-zA-Z0-9]{14,17}$/.test(baseId);
+  };
 
   const handleSave = async () => {
+    // Reset validation state
+    setValidationError(null);
+
     // Validate required fields
     if (!credentials.openaiApiKey || !credentials.airtableApiKey || 
         !credentials.airtableBaseId || !credentials.airtableTableName) {
       toast({
         title: "Missing credentials",
         description: "Please fill in all required fields",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate Airtable Base ID format
+    if (!isValidBaseId(credentials.airtableBaseId)) {
+      setValidationError(
+        "Invalid Airtable Base ID format. It should start with 'app' followed by 14-17 alphanumeric characters."
+      );
+      toast({
+        title: "Invalid Base ID format",
+        description: "Base ID should be in the format: appXXXXXXXXXXXXXX",
         variant: "destructive",
       });
       return;
@@ -54,6 +76,7 @@ const APICredentialsForm = ({
       // Test the Airtable connection
       const airtableValidation = await airtableService.validateConfig();
       if (!airtableValidation.valid) {
+        setValidationError(airtableValidation.error || "Failed to validate Airtable configuration");
         toast({
           title: "Airtable configuration error",
           description: airtableValidation.error || "Failed to validate Airtable configuration",
@@ -80,9 +103,11 @@ const APICredentialsForm = ({
     } catch (error) {
       console.error('Error initializing services:', error);
       setIsValidating(false);
+      const errorMessage = error instanceof Error ? error.message : "Failed to initialize services";
+      setValidationError(errorMessage);
       toast({
         title: "Configuration error",
-        description: error instanceof Error ? error.message : "Failed to initialize services",
+        description: errorMessage,
         variant: "destructive",
       });
     }
@@ -90,6 +115,13 @@ const APICredentialsForm = ({
 
   return (
     <div className="grid gap-6 py-4">
+      {validationError && (
+        <Alert variant="destructive">
+          <AlertTitle>Configuration Error</AlertTitle>
+          <AlertDescription>{validationError}</AlertDescription>
+        </Alert>
+      )}
+      
       <Alert className="bg-blue-50 border-blue-200">
         <AlertTitle>Airtable Configuration Requirements</AlertTitle>
         <AlertDescription>
@@ -105,6 +137,12 @@ const APICredentialsForm = ({
             <li><strong>Preparation Steps</strong> (Long text)</li>
           </ul>
           <p className="mt-2 text-sm font-medium">Make sure your Base ID is in the format <code>appXXXXXXXXXXXXXX</code></p>
+          <p className="mt-1 text-sm text-red-600 font-medium">Common errors:</p>
+          <ul className="list-disc list-inside mt-1 space-y-1 text-sm text-red-600">
+            <li>Using a workspace ID instead of a Base ID</li>
+            <li>Missing or incorrect table field names</li>
+            <li>403 Forbidden - API key doesn't have access to the base</li>
+          </ul>
         </AlertDescription>
       </Alert>
       
@@ -145,10 +183,16 @@ const APICredentialsForm = ({
               value={credentials.airtableBaseId}
               onChange={(e) => onCredentialChange('airtableBaseId', e.target.value)}
               placeholder="Enter Airtable Base ID (appXXXXXXXX)"
+              className={!isValidBaseId(credentials.airtableBaseId) && credentials.airtableBaseId ? "border-red-300" : ""}
             />
             <p className="text-xs text-muted-foreground">
               Find in your base URL: airtable.com/{credentials.airtableBaseId ? credentials.airtableBaseId : 'appXXXXXXXX'}/...
             </p>
+            {credentials.airtableBaseId && !isValidBaseId(credentials.airtableBaseId) && (
+              <p className="text-xs text-red-500">
+                Invalid format. Base ID should start with "app" followed by 14-17 alphanumeric characters.
+              </p>
+            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="airtableTableName">Table Name</Label>
