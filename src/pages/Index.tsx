@@ -1,4 +1,3 @@
-
 import React from 'react';
 import Header from '@/components/Header';
 import ImageUploader from '@/components/ImageUploader';
@@ -25,24 +24,28 @@ const Index = () => {
   React.useEffect(() => {
     if (isCredentialsSet && credentials) {
       try {
-        initBunnyStorage(
-          credentials.bunnyStorageAccessKey,
-          credentials.bunnyStorageName,
-          credentials.bunnyStorageRegion
+        console.log('Initializing services with credentials...');
+        
+        const bunnyStorage = initBunnyStorage(
+          credentials.bunnyStorageAccessKey || '',
+          credentials.bunnyStorageName || '',
+          credentials.bunnyStorageRegion || 'de'
         );
         
-        initOpenAIVision(credentials.openaiApiKey);
+        initOpenAIVision(credentials.openaiApiKey || '');
         
         initAirtable(
-          credentials.airtableApiKey,
-          credentials.airtableBaseId,
-          credentials.airtableTableName
+          credentials.airtableApiKey || '',
+          credentials.airtableBaseId || '',
+          credentials.airtableTableName || ''
         );
         
         console.log('Services initialized with credentials');
       } catch (error) {
         console.error('Error initializing services:', error);
       }
+    } else {
+      console.log('Credentials not set or incomplete. Services not initialized.');
     }
   }, [isCredentialsSet, credentials]);
 

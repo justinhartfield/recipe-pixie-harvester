@@ -19,6 +19,13 @@ export class BunnyStorageService {
     this.storageName = storageName;
     this.region = region;
     this.baseUrl = `https://${region}.storage.bunnycdn.com/${storageName}/`;
+    
+    console.log('BunnyStorageService initialized:', {
+      hasAccessKey: !!accessKey,
+      storageName,
+      region,
+      baseUrl: this.baseUrl
+    });
   }
 
   /**
@@ -34,7 +41,8 @@ export class BunnyStorageService {
       
       console.log('Uploading to Bunny.net:', {
         url: `${this.baseUrl}${filePath}`,
-        accessKey: this.accessKey ? '***' : 'missing', // Log masked key for debugging
+        hasAccessKey: !!this.accessKey,
+        accessKeyFirstChars: this.accessKey ? this.accessKey.substring(0, 5) + '...' : 'missing',
         storageName: this.storageName,
         fileType: file.type,
         fileName: file.name
@@ -42,6 +50,15 @@ export class BunnyStorageService {
       
       // Use the rate limiter for the API request
       return await apiRateLimiter.add(async () => {
+        // Validate that we have an access key before making the request
+        if (!this.accessKey) {
+          console.error('Bunny.net upload failed: Access key is missing');
+          return {
+            success: false,
+            error: 'Bunny.net access key is missing'
+          };
+        }
+
         const response = await fetch(`${this.baseUrl}${filePath}`, {
           method: 'PUT',
           headers: {
@@ -51,19 +68,23 @@ export class BunnyStorageService {
           body: file,
         });
 
+        const responseText = await response.text();
+        
         if (!response.ok) {
-          const errorText = await response.text();
-          console.error('Bunny.net upload failed:', response.status, errorText);
+          console.error('Bunny.net upload failed:', response.status, responseText);
           return {
             success: false,
-            error: `Upload failed: ${response.status} ${response.statusText || errorText}`
+            error: `Upload failed: ${response.status} ${response.statusText || responseText}`
           };
         }
 
+        const publicUrl = `https://${this.storageName}.b-cdn.net/${filePath}`;
+        console.log('Bunny.net upload successful:', publicUrl);
+        
         // Return the public URL
         return {
           success: true,
-          url: `https://${this.storageName}.b-cdn.net/${filePath}`
+          url: publicUrl
         };
       });
     } catch (error) {
@@ -137,8 +158,11 @@ export const initBunnyStorage = (
   console.log('Initializing Bunny Storage with:', {
     storageName,
     region,
-    hasAccessKey: !!accessKey
+    hasAccessKey: !!accessKey,
+    accessKeyLength: accessKey ? accessKey.length : 0
   });
+  
+  // Create a new instance with the provided credentials
   bunnyStorageService = new BunnyStorageService(accessKey, storageName, region);
   return bunnyStorageService;
 };

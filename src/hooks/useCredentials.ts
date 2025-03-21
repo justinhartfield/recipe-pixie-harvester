@@ -24,6 +24,17 @@ export const useCredentials = () => {
     const airtableBaseId = localStorage.getItem('airtableBaseId') || '';
     const airtableTableName = localStorage.getItem('airtableTableName') || '';
 
+    // Log for debugging
+    console.log('Credentials loaded from localStorage:', {
+      hasBunnyKey: !!bunnyStorageAccessKey,
+      bunnyStorageName,
+      bunnyStorageRegion,
+      hasOpenAIKey: !!openaiApiKey,
+      hasAirtableKey: !!airtableApiKey,
+      hasAirtableBaseId: !!airtableBaseId,
+      hasAirtableTableName: !!airtableTableName
+    });
+
     const hasCredentials = !!(
       bunnyStorageAccessKey && 
       bunnyStorageName && 
@@ -48,6 +59,17 @@ export const useCredentials = () => {
   }, []);
 
   const handleCredentialsUpdate = (newCredentials: APICredentials) => {
+    // Log for debugging
+    console.log('Updating credentials:', {
+      hasBunnyKey: !!newCredentials.bunnyStorageAccessKey,
+      bunnyStorageName: newCredentials.bunnyStorageName,
+      bunnyStorageRegion: newCredentials.bunnyStorageRegion,
+      hasOpenAIKey: !!newCredentials.openaiApiKey,
+      hasAirtableKey: !!newCredentials.airtableApiKey,
+      hasAirtableBaseId: !!newCredentials.airtableBaseId,
+      hasAirtableTableName: !!newCredentials.airtableTableName
+    });
+
     setCredentials(newCredentials);
     setIsCredentialsSet(true);
   };
