@@ -13,7 +13,6 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { useToast } from '@/components/ui/use-toast';
-import { initBunnyStorage } from '@/services/bunnyService';
 import { initOpenAIVision } from '@/services/openaiService';
 import { initAirtable } from '@/services/airtableService';
 import { APICredentials } from '@/utils/types';
@@ -33,10 +32,6 @@ const Header = ({
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   
   const [credentials, setCredentials] = useState<APICredentials>({
-    bunnyStorageAccessKey: localStorage.getItem('bunnyStorageAccessKey') || '',
-    bunnyStorageName: localStorage.getItem('bunnyStorageName') || '',
-    bunnyStorageRegion: localStorage.getItem('bunnyStorageRegion') || 'de',
-    bunnyPullZoneId: localStorage.getItem('bunnyPullZoneId') || '',
     openaiApiKey: localStorage.getItem('openaiApiKey') || '',
     airtableApiKey: localStorage.getItem('airtableApiKey') || '',
     airtableBaseId: localStorage.getItem('airtableBaseId') || '',
@@ -49,8 +44,7 @@ const Header = ({
 
   const saveCredentials = () => {
     // Validate required fields
-    if (!credentials.bunnyStorageAccessKey || !credentials.bunnyStorageName || 
-        !credentials.openaiApiKey || !credentials.airtableApiKey || 
+    if (!credentials.openaiApiKey || !credentials.airtableApiKey || 
         !credentials.airtableBaseId || !credentials.airtableTableName) {
       toast({
         title: "Missing credentials",
@@ -69,13 +63,6 @@ const Header = ({
 
     // Initialize services
     try {
-      initBunnyStorage(
-        credentials.bunnyStorageAccessKey,
-        credentials.bunnyStorageName,
-        credentials.bunnyStorageRegion,
-        credentials.bunnyPullZoneId
-      );
-      
       initOpenAIVision(credentials.openaiApiKey);
       
       initAirtable(
@@ -134,52 +121,10 @@ const Header = ({
               <DialogHeader>
                 <DialogTitle>API Configuration</DialogTitle>
                 <DialogDescription>
-                  Configure API credentials for Bunny.net, OpenAI, and Airtable.
+                  Configure API credentials for OpenAI and Airtable.
                 </DialogDescription>
               </DialogHeader>
               <div className="grid gap-6 py-4">
-                <div className="grid gap-2">
-                  <h3 className="text-lg font-medium">Bunny.net Storage</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="bunnyStorageAccessKey">Access Key</Label>
-                      <Input
-                        id="bunnyStorageAccessKey"
-                        value={credentials.bunnyStorageAccessKey}
-                        onChange={(e) => handleCredentialChange('bunnyStorageAccessKey', e.target.value)}
-                        placeholder="Enter Bunny.net Storage Access Key"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="bunnyStorageName">Storage Name</Label>
-                      <Input
-                        id="bunnyStorageName"
-                        value={credentials.bunnyStorageName}
-                        onChange={(e) => handleCredentialChange('bunnyStorageName', e.target.value)}
-                        placeholder="Enter Bunny.net Storage Zone Name"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="bunnyStorageRegion">Region</Label>
-                      <Input
-                        id="bunnyStorageRegion"
-                        value={credentials.bunnyStorageRegion}
-                        onChange={(e) => handleCredentialChange('bunnyStorageRegion', e.target.value)}
-                        placeholder="Storage Region (e.g., de, ny, la)"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="bunnyPullZoneId">Pull Zone ID (optional)</Label>
-                      <Input
-                        id="bunnyPullZoneId"
-                        value={credentials.bunnyPullZoneId}
-                        onChange={(e) => handleCredentialChange('bunnyPullZoneId', e.target.value)}
-                        placeholder="Enter Bunny.net Pull Zone ID"
-                      />
-                    </div>
-                  </div>
-                </div>
-                
                 <div className="grid gap-2">
                   <h3 className="text-lg font-medium">OpenAI</h3>
                   <div className="space-y-2">
