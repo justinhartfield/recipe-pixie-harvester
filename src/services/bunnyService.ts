@@ -32,23 +32,31 @@ export class BunnyStorageService {
       // Generate a path if not provided
       const filePath = path || `recipes/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
       
+      console.log('Uploading to Bunny.net:', {
+        url: `${this.baseUrl}${filePath}`,
+        accessKey: this.accessKey ? '***' : 'missing', // Log masked key for debugging
+        storageName: this.storageName,
+        fileType: file.type,
+        fileName: file.name
+      });
+      
       // Use the rate limiter for the API request
       return await apiRateLimiter.add(async () => {
         const response = await fetch(`${this.baseUrl}${filePath}`, {
           method: 'PUT',
           headers: {
             'AccessKey': this.accessKey,
-            'Content-Type': file.type,
+            'Content-Type': file.type || 'application/octet-stream',
           },
           body: file,
         });
 
         if (!response.ok) {
           const errorText = await response.text();
-          console.error('Bunny.net upload failed:', errorText);
+          console.error('Bunny.net upload failed:', response.status, errorText);
           return {
             success: false,
-            error: `Upload failed: ${response.status} ${response.statusText}`
+            error: `Upload failed: ${response.status} ${response.statusText || errorText}`
           };
         }
 
@@ -126,6 +134,11 @@ export const initBunnyStorage = (
   storageName: string,
   region: string = 'de'
 ): BunnyStorageService => {
+  console.log('Initializing Bunny Storage with:', {
+    storageName,
+    region,
+    hasAccessKey: !!accessKey
+  });
   bunnyStorageService = new BunnyStorageService(accessKey, storageName, region);
   return bunnyStorageService;
 };

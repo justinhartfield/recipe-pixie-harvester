@@ -6,9 +6,12 @@ import ProcessingQueue from '@/components/ProcessingQueue';
 import WelcomeMessage from '@/components/WelcomeMessage';
 import { useCredentials } from '@/hooks/useCredentials';
 import { useImageProcessing } from '@/hooks/useImageProcessing';
+import { initBunnyStorage } from '@/services/bunnyService';
+import { initOpenAIVision } from '@/services/openaiService';
+import { initAirtable } from '@/services/airtableService';
 
 const Index = () => {
-  const { isCredentialsSet, handleCredentialsUpdate } = useCredentials();
+  const { isCredentialsSet, credentials, handleCredentialsUpdate } = useCredentials();
   const {
     isProcessing,
     processingQueue,
@@ -17,6 +20,31 @@ const Index = () => {
     handleImagesSelected,
     handleClearCompleted
   } = useImageProcessing();
+
+  // Initialize services when credentials are available
+  React.useEffect(() => {
+    if (isCredentialsSet && credentials) {
+      try {
+        initBunnyStorage(
+          credentials.bunnyStorageAccessKey,
+          credentials.bunnyStorageName,
+          credentials.bunnyStorageRegion
+        );
+        
+        initOpenAIVision(credentials.openaiApiKey);
+        
+        initAirtable(
+          credentials.airtableApiKey,
+          credentials.airtableBaseId,
+          credentials.airtableTableName
+        );
+        
+        console.log('Services initialized with credentials');
+      } catch (error) {
+        console.error('Error initializing services:', error);
+      }
+    }
+  }, [isCredentialsSet, credentials]);
 
   const handleImageSelection = (files: File[]) => {
     handleImagesSelected(files, isCredentialsSet);
