@@ -1,6 +1,5 @@
-
 import React from 'react';
-import Header from '@/components/Header';
+import Header from '@/components/header/Header';
 import ImageUploader from '@/components/ImageUploader';
 import ProcessingQueue from '@/components/ProcessingQueue';
 import WelcomeMessage from '@/components/WelcomeMessage';
@@ -21,7 +20,6 @@ const Index = () => {
     handleClearCompleted
   } = useImageProcessing();
 
-  // Initialize services when credentials are available
   React.useEffect(() => {
     if (isCredentialsSet && credentials) {
       try {
