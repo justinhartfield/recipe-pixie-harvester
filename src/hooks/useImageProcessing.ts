@@ -19,11 +19,43 @@ export const useImageProcessing = () => {
     apiRateLimiter.setDelay(value);
   };
 
-  const handleImagesSelected = (files: File[], isCredentialsSet: boolean) => {
+  const handleImagesSelected = async (files: File[], isCredentialsSet: boolean) => {
     if (!isCredentialsSet) {
       toast({
         title: "Missing configuration",
         description: "Please configure API credentials in settings before uploading images.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Test Bunny.net connection before proceeding
+    const bunnyStorage = getBunnyStorage();
+    if (!bunnyStorage) {
+      toast({
+        title: "Service not initialized",
+        description: "Bunny.net storage service is not properly initialized.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      // Test connection to Bunny.net
+      const connectionTest = await bunnyStorage.testConnection();
+      if (!connectionTest) {
+        toast({
+          title: "Connection failed",
+          description: "Failed to connect to Bunny.net. Please check your API key and storage name.",
+          variant: "destructive",
+        });
+        return;
+      }
+    } catch (error) {
+      console.error("Error testing Bunny.net connection:", error);
+      toast({
+        title: "Connection error",
+        description: "Error connecting to Bunny.net. Please check your credentials.",
         variant: "destructive",
       });
       return;
@@ -70,6 +102,9 @@ export const useImageProcessing = () => {
     try {
       // Step 1: Upload to Bunny.net
       updateQueueItem(item.id, { status: 'uploading', progress: 10 });
+      
+      console.log(`Processing file: ${item.fileName}`);
+      
       const uploadResult = await bunnyStorage.uploadFile(item.file);
       
       if (!uploadResult.success || !uploadResult.url) {

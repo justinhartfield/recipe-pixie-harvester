@@ -1,9 +1,9 @@
-
 import { useState } from 'react';
 import { useToast } from '@/components/ui/use-toast';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { initBunnyStorage } from '@/services/bunnyService';
 import { initOpenAIVision } from '@/services/openaiService';
 import { initAirtable } from '@/services/airtableService';
@@ -23,8 +23,9 @@ const APICredentialsForm = ({
   onCancel
 }: APICredentialsFormProps) => {
   const { toast } = useToast();
+  const [isTesting, setIsTesting] = useState(false);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     // Validate required fields
     if (!credentials.bunnyStorageAccessKey || !credentials.bunnyStorageName || 
         !credentials.openaiApiKey || !credentials.airtableApiKey || 
@@ -44,14 +45,28 @@ const APICredentialsForm = ({
       }
     });
 
+    setIsTesting(true);
+    
     // Initialize services
     try {
-      initBunnyStorage(
+      const bunnyStorage = initBunnyStorage(
         credentials.bunnyStorageAccessKey,
         credentials.bunnyStorageName,
         credentials.bunnyStorageRegion,
         credentials.bunnyPullZoneId
       );
+      
+      // Test Bunny.net connection
+      const bunnyConnected = await bunnyStorage.testConnection();
+      if (!bunnyConnected) {
+        toast({
+          title: "Bunny.net connection failed",
+          description: "Could not connect to Bunny.net. Please verify your access key and storage name.",
+          variant: "destructive",
+        });
+        setIsTesting(false);
+        return;
+      }
       
       initOpenAIVision(credentials.openaiApiKey);
       
@@ -74,6 +89,8 @@ const APICredentialsForm = ({
         description: error instanceof Error ? error.message : "Failed to initialize services",
         variant: "destructive",
       });
+    } finally {
+      setIsTesting(false);
     }
   };
 
@@ -81,6 +98,11 @@ const APICredentialsForm = ({
     <div className="grid gap-6 py-4">
       <div className="grid gap-2">
         <h3 className="text-lg font-medium">Bunny.net Storage</h3>
+        <Alert variant="warning" className="mb-4">
+          <AlertDescription>
+            Make sure your Bunny.net account has sufficient permissions. You may need to enable "API Connection" in the security settings.
+          </AlertDescription>
+        </Alert>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="bunnyStorageAccessKey">Access Key</Label>
@@ -90,6 +112,7 @@ const APICredentialsForm = ({
               onChange={(e) => onCredentialChange('bunnyStorageAccessKey', e.target.value)}
               placeholder="Enter Bunny.net Storage Access Key"
             />
+            <p className="text-xs text-muted-foreground">Found in Storage Zone settings</p>
           </div>
           <div className="space-y-2">
             <Label htmlFor="bunnyStorageName">Storage Name</Label>
@@ -99,6 +122,7 @@ const APICredentialsForm = ({
               onChange={(e) => onCredentialChange('bunnyStorageName', e.target.value)}
               placeholder="Enter Bunny.net Storage Zone Name"
             />
+            <p className="text-xs text-muted-foreground">Your storage zone name (not the full URL)</p>
           </div>
           <div className="space-y-2">
             <Label htmlFor="bunnyStorageRegion">Region</Label>
@@ -108,6 +132,7 @@ const APICredentialsForm = ({
               onChange={(e) => onCredentialChange('bunnyStorageRegion', e.target.value)}
               placeholder="Storage Region (e.g., de, ny, la)"
             />
+            <p className="text-xs text-muted-foreground">Region code where your storage is located</p>
           </div>
           <div className="space-y-2">
             <Label htmlFor="bunnyPullZoneId">Pull Zone ID (optional)</Label>
@@ -117,6 +142,7 @@ const APICredentialsForm = ({
               onChange={(e) => onCredentialChange('bunnyPullZoneId', e.target.value)}
               placeholder="Enter Bunny.net Pull Zone ID"
             />
+            <p className="text-xs text-muted-foreground">Found in Pull Zone settings</p>
           </div>
         </div>
       </div>
@@ -170,11 +196,11 @@ const APICredentialsForm = ({
       </div>
 
       <div className="flex justify-end gap-2 mt-4">
-        <Button variant="outline" onClick={onCancel}>
+        <Button variant="outline" onClick={onCancel} disabled={isTesting}>
           Cancel
         </Button>
-        <Button onClick={handleSave}>
-          Save Changes
+        <Button onClick={handleSave} disabled={isTesting}>
+          {isTesting ? "Testing Connection..." : "Save Changes"}
         </Button>
       </div>
     </div>

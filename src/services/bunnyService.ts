@@ -1,4 +1,3 @@
-
 import { ImageUploadResult } from '@/utils/types';
 import { apiRateLimiter } from '@/utils/rateLimit';
 
@@ -54,51 +53,72 @@ export class BunnyStorageService {
         hasPullZoneId: !!this.pullZoneId
       });
       
+      // Validate that we have an access key before making the request
+      if (!this.accessKey) {
+        console.error('Bunny.net upload failed: Access key is missing');
+        return {
+          success: false,
+          error: 'Bunny.net access key is missing'
+        };
+      }
+
       // Use the rate limiter for the API request
       return await apiRateLimiter.add(async () => {
-        // Validate that we have an access key before making the request
-        if (!this.accessKey) {
-          console.error('Bunny.net upload failed: Access key is missing');
+        try {
+          // Convert the file to an array buffer for the request
+          const arrayBuffer = await file.arrayBuffer();
+          
+          // Create a request with the proper headers
+          const response = await fetch(`${this.baseUrl}${filePath}`, {
+            method: 'PUT',
+            headers: {
+              'AccessKey': this.accessKey,
+              'Content-Type': file.type || 'application/octet-stream',
+              'Accept': '*/*'
+            },
+            body: arrayBuffer,
+          });
+
+          // Log the response headers for debugging
+          console.log('Bunny.net response headers:', {
+            status: response.status,
+            statusText: response.statusText,
+            headers: Object.fromEntries([...response.headers.entries()])
+          });
+
+          const responseText = await response.text();
+          console.log('Bunny.net response text:', responseText);
+          
+          if (!response.ok) {
+            console.error('Bunny.net upload failed:', response.status, responseText);
+            return {
+              success: false,
+              error: `Upload failed: ${response.status} ${response.statusText || responseText}`
+            };
+          }
+
+          // Construct public URL using pull zone if available
+          let publicUrl;
+          if (this.pullZoneId) {
+            publicUrl = `https://${this.pullZoneId}.b-cdn.net/${filePath}`;
+          } else {
+            publicUrl = `https://${this.storageName}.b-cdn.net/${filePath}`;
+          }
+          
+          console.log('Bunny.net upload successful:', publicUrl);
+          
+          // Return the public URL
+          return {
+            success: true,
+            url: publicUrl
+          };
+        } catch (error) {
+          console.error('Bunny.net fetch error:', error);
           return {
             success: false,
-            error: 'Bunny.net access key is missing'
+            error: error instanceof Error ? error.message : 'Unknown upload error'
           };
         }
-
-        const response = await fetch(`${this.baseUrl}${filePath}`, {
-          method: 'PUT',
-          headers: {
-            'AccessKey': this.accessKey,
-            'Content-Type': file.type || 'application/octet-stream',
-          },
-          body: file,
-        });
-
-        const responseText = await response.text();
-        
-        if (!response.ok) {
-          console.error('Bunny.net upload failed:', response.status, responseText);
-          return {
-            success: false,
-            error: `Upload failed: ${response.status} ${response.statusText || responseText}`
-          };
-        }
-
-        // Construct public URL using pull zone if available
-        let publicUrl;
-        if (this.pullZoneId) {
-          publicUrl = `https://${this.pullZoneId}.b-cdn.net/${filePath}`;
-        } else {
-          publicUrl = `https://${this.storageName}.b-cdn.net/${filePath}`;
-        }
-        
-        console.log('Bunny.net upload successful:', publicUrl);
-        
-        // Return the public URL
-        return {
-          success: true,
-          url: publicUrl
-        };
       });
     } catch (error) {
       console.error('Bunny.net upload error:', error);
@@ -156,6 +176,43 @@ export class BunnyStorageService {
     } catch (error) {
       console.error('Bunny.net list files error:', error);
       return [];
+    }
+  }
+
+  /**
+   * Test connection to Bunny.net storage
+   * @returns True if connection is successful
+   */
+  public async testConnection(): Promise<boolean> {
+    try {
+      console.log('Testing Bunny.net connection...');
+      
+      return await apiRateLimiter.add(async () => {
+        try {
+          // Try to list files in the root directory to test connection
+          const response = await fetch(`${this.baseUrl}`, {
+            method: 'GET',
+            headers: {
+              'AccessKey': this.accessKey,
+              'Accept': 'application/json'
+            },
+          });
+
+          // Log response details for debugging
+          console.log('Bunny.net test connection response:', {
+            status: response.status,
+            statusText: response.statusText,
+          });
+
+          return response.ok;
+        } catch (error) {
+          console.error('Bunny.net test connection error:', error);
+          return false;
+        }
+      });
+    } catch (error) {
+      console.error('Bunny.net test connection error:', error);
+      return false;
     }
   }
 }

@@ -2,6 +2,10 @@
 import { useState, useEffect } from 'react';
 import { APICredentials } from '@/utils/types';
 
+// Default values from environment variables if available
+const DEFAULT_OPENAI_API_KEY = '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';
+const DEFAULT_AIRTABLE_API_KEY = 'patAgalgn8IqCFf3m.3f0943fc1bad5e63e785e4f081811e437d6a705b1f226f385344922fb418d986';
+
 export const useCredentials = () => {
   const [isCredentialsSet, setIsCredentialsSet] = useState(false);
   const [credentials, setCredentials] = useState<APICredentials>({
@@ -9,8 +13,8 @@ export const useCredentials = () => {
     bunnyStorageName: '',
     bunnyStorageRegion: 'de',
     bunnyPullZoneId: '',
-    openaiApiKey: '',
-    airtableApiKey: '',
+    openaiApiKey: DEFAULT_OPENAI_API_KEY || '',
+    airtableApiKey: DEFAULT_AIRTABLE_API_KEY || '',
     airtableBaseId: '',
     airtableTableName: '',
   });
@@ -21,8 +25,8 @@ export const useCredentials = () => {
     const bunnyStorageName = localStorage.getItem('bunnyStorageName') || '';
     const bunnyStorageRegion = localStorage.getItem('bunnyStorageRegion') || 'de';
     const bunnyPullZoneId = localStorage.getItem('bunnyPullZoneId') || '';
-    const openaiApiKey = localStorage.getItem('openaiApiKey') || '';
-    const airtableApiKey = localStorage.getItem('airtableApiKey') || '';
+    const openaiApiKey = localStorage.getItem('openaiApiKey') || DEFAULT_OPENAI_API_KEY || '';
+    const airtableApiKey = localStorage.getItem('airtableApiKey') || DEFAULT_AIRTABLE_API_KEY || '';
     const airtableBaseId = localStorage.getItem('airtableBaseId') || '';
     const airtableTableName = localStorage.getItem('airtableTableName') || '';
 
