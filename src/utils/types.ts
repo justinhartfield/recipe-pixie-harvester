@@ -40,6 +40,7 @@ export interface ProcessingStatus {
   recipe?: Recipe;
   error?: string;
   created: Date;
+  viewed?: boolean;
 }
 
 export interface APICredentials {
