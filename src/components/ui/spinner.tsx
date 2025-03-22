@@ -21,6 +21,7 @@ export const Spinner = ({ size = 'md', className, ...props }: SpinnerProps) => {
         className
       )}
       {...props}
+      aria-label="Loading"
     />
   );
 };
